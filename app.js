@@ -10,6 +10,37 @@
   const HISTORY_KEY = 'calcHistory:v1';
   const HISTORY_MAX = 10;
 
+  const MEMORY_KEY = 'calcMemory:v1';
+  let memory = 0;
+
+  function loadMemory() {
+    try {
+      const raw = localStorage.getItem(MEMORY_KEY);
+      const n = raw === null ? 0 : Number(raw);
+      memory = Number.isFinite(n) ? n : 0;
+    } catch {
+      memory = 0;
+    }
+  }
+
+  function saveMemory(next) {
+    memory = Number.isFinite(next) ? next : 0;
+    try {
+      localStorage.setItem(MEMORY_KEY, String(memory));
+    } catch {
+      // ignore
+    }
+  }
+
+  function clearMemory() {
+    memory = 0;
+    try {
+      localStorage.removeItem(MEMORY_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
   /** @typedef {{ id: string; expr: string; result: string }} HistoryItem */
   /** @type {HistoryItem[]} */
   let history = [];
@@ -275,6 +306,47 @@
     render();
   }
 
+  function getDisplayedNumber() {
+    if (current !== '' && current !== '-') {
+      const n = Number(current);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    if (!tokens.length) return 0;
+
+    const last = tokens[tokens.length - 1];
+    if (typeof last === 'number') return last;
+
+    const prev = tokens.length >= 2 ? tokens[tokens.length - 2] : null;
+    return typeof prev === 'number' ? prev : 0;
+  }
+
+  function applyDisplayedNumber(n) {
+    const text = formatNumber(n);
+
+    if (lastWasEquals) {
+      tokens = [];
+      lastWasEquals = false;
+    }
+
+    if (current === '' && tokens.length) {
+      const last = tokens[tokens.length - 1];
+      const prev = tokens.length >= 2 ? tokens[tokens.length - 2] : null;
+      if (typeof last === 'number' && (tokens.length === 1 || typeof prev === 'string')) {
+        const parsed = Number(text);
+        tokens[tokens.length - 1] = Number.isFinite(parsed) ? parsed : 0;
+        current = '';
+        error = false;
+        render();
+        return;
+      }
+    }
+
+    current = text;
+    error = false;
+    render();
+  }
+
   function percent() {
     if (!ensureNotError()) return;
     if (current === '' || current === '-') return;
@@ -379,6 +451,27 @@
     if (action === 'dot') return appendDot();
     if (action === 'toggleSign') return toggleSign();
     if (action === 'percent') return percent();
+
+    if (action === 'memClear') {
+      if (error) resetAll();
+      clearMemory();
+      return;
+    }
+    if (action === 'memRecall') {
+      if (error) resetAll();
+      applyDisplayedNumber(memory);
+      return;
+    }
+    if (action === 'memPlus') {
+      if (error) resetAll();
+      saveMemory(memory + getDisplayedNumber());
+      return;
+    }
+    if (action === 'memMinus') {
+      if (error) resetAll();
+      saveMemory(memory - getDisplayedNumber());
+      return;
+    }
   });
 
   historyListEl?.addEventListener('click', (e) => {
@@ -441,6 +534,7 @@
   });
 
   loadHistory();
+  loadMemory();
   renderHistory();
   render();
 })();
