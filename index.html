@@ -46,6 +46,19 @@
 
         <p class="hint">鍵盤：0-9 . + - * / Enter Backspace Esc</p>
       </section>
+
+      <section class="history" aria-label="Calculation history">
+        <header class="history-header">
+          <h2 class="history-title">計算歷史</h2>
+          <div class="history-actions" role="group" aria-label="History actions">
+            <button id="historyCopy" class="btn" type="button">複製</button>
+            <button id="historyClear" class="btn btn-danger" type="button">清除</button>
+          </div>
+        </header>
+
+        <ul id="historyList" class="history-list" aria-label="History list"></ul>
+        <p id="historyEmpty" class="history-empty" aria-live="polite">尚無歷史</p>
+      </section>
     </main>
   </body>
 </html>
