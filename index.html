@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>計算機</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <h1 class="sr-only">計算機</h1>
+
+      <section class="calc" aria-label="Calculator">
+        <div class="display" role="status" aria-live="polite">
+          <div id="expr" class="expr" aria-label="Expression"></div>
+          <div id="value" class="value" aria-label="Current value">0</div>
+        </div>
+
+        <div class="keys" role="group" aria-label="Keys">
+          <button class="key key-fn" data-action="clear" aria-label="Clear">C</button>
+          <button class="key key-fn" data-action="backspace" aria-label="Backspace">⌫</button>
+          <button class="key key-fn" data-action="percent" aria-label="Percent">%</button>
+          <button class="key key-op" data-op="/" aria-label="Divide">÷</button>
+
+          <button class="key" data-digit="7">7</button>
+          <button class="key" data-digit="8">8</button>
+          <button class="key" data-digit="9">9</button>
+          <button class="key key-op" data-op="*" aria-label="Multiply">×</button>
+
+          <button class="key" data-digit="4">4</button>
+          <button class="key" data-digit="5">5</button>
+          <button class="key" data-digit="6">6</button>
+          <button class="key key-op" data-op="-" aria-label="Minus">−</button>
+
+          <button class="key" data-digit="1">1</button>
+          <button class="key" data-digit="2">2</button>
+          <button class="key" data-digit="3">3</button>
+          <button class="key key-op" data-op="+" aria-label="Plus">+</button>
+
+          <button class="key key-fn" data-action="toggleSign" aria-label="Toggle sign">±</button>
+          <button class="key" data-digit="0">0</button>
+          <button class="key" data-action="dot" aria-label="Decimal point">.</button>
+          <button class="key key-eq" data-action="equals" aria-label="Equals">=</button>
+        </div>
+
+        <p class="hint">鍵盤：0-9 . + - * / Enter Backspace Esc</p>
+      </section>
+    </main>
+  </body>
+</html>
