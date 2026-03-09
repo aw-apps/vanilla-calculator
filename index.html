@@ -13,11 +13,19 @@
 
       <section class="calc" aria-label="Calculator">
         <div class="display" role="status" aria-live="polite">
-          <div id="expr" class="expr" aria-label="Expression"></div>
+          <div class="expr-row">
+            <div id="mem" class="mem" aria-label="Memory">M</div>
+            <div id="expr" class="expr" aria-label="Expression"></div>
+          </div>
           <div id="value" class="value" aria-label="Current value">0</div>
         </div>
 
         <div class="keys" role="group" aria-label="Keys">
+          <button class="key key-fn" data-action="memClear" aria-label="Memory clear">MC</button>
+          <button class="key key-fn" data-action="memRecall" aria-label="Memory recall">MR</button>
+          <button class="key key-fn" data-action="memAdd" aria-label="Memory add">M+</button>
+          <button class="key key-fn" data-action="memSub" aria-label="Memory subtract">M-</button>
+
           <button class="key key-fn" data-action="clear" aria-label="Clear">C</button>
           <button class="key key-fn" data-action="backspace" aria-label="Backspace">⌫</button>
           <button class="key key-fn" data-action="percent" aria-label="Percent">%</button>
