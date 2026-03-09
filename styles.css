@@ -21,6 +21,12 @@
 .history-title{margin:0;font-size:14px;color:var(--muted);letter-spacing:.2px}
 .history-actions{display:flex;gap:8px}
 .btn{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);padding:8px 10px;border-radius:12px;font-size:13px;cursor:pointer}
+.icon-btn{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);padding:6px 10px;border-radius:12px;font-size:12px;cursor:pointer;white-space:nowrap}
+.icon-btn:active{transform:translateY(1px)}
+.icon-btn:focus-visible{outline:3px solid rgba(59,130,246,.5);outline-offset:2px}
+.icon-btn[disabled]{opacity:.55;cursor:not-allowed}
+.expr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.expr-row .expr{flex:1}
 .btn:active{transform:translateY(1px)}
 .btn:focus-visible{outline:3px solid rgba(59,130,246,.5);outline-offset:2px}
 .btn-danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
@@ -32,7 +38,5 @@
 .history-result{font-variant-numeric:tabular-nums;color:var(--text);font-size:14px;white-space:nowrap}
 .history-empty{margin:8px 2px 0;color:var(--muted);font-size:12px}
 
-.expr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.expr-row .expr{flex:1}
 .mem{min-height:18px;font-size:13px;color:var(--muted);text-align:left;letter-spacing:.2px;white-space:nowrap;opacity:.55}
 .mem.active{opacity:1}
