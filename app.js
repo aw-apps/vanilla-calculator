@@ -2,6 +2,18 @@
   const exprEl = document.getElementById('expr');
   const valueEl = document.getElementById('value');
 
+  const historyListEl = document.getElementById('historyList');
+  const historyEmptyEl = document.getElementById('historyEmpty');
+  const historyCopyBtn = document.getElementById('historyCopy');
+  const historyClearBtn = document.getElementById('historyClear');
+
+  const HISTORY_KEY = 'calcHistory:v1';
+  const HISTORY_MAX = 10;
+
+  /** @typedef {{ id: string; expr: string; result: string }} HistoryItem */
+  /** @type {HistoryItem[]} */
+  let history = [];
+
   /** @type {(number|string)[]} */
   let tokens = [];
   let current = '';
@@ -12,6 +24,132 @@
     if (!Number.isFinite(n)) return '錯誤';
     const s = String(n);
     return s.length > 14 ? n.toPrecision(12).replace(/\.?0+$/, '') : s;
+  }
+
+  function safeParseJSON(s) {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return null;
+    }
+  }
+
+  function loadHistory() {
+    if (!historyListEl) return;
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? safeParseJSON(raw) : null;
+    if (!Array.isArray(parsed)) {
+      history = [];
+      return;
+    }
+    history = parsed
+      .filter((x) => x && typeof x === 'object')
+      .map((x) => ({
+        id: typeof x.id === 'string' ? x.id : crypto.randomUUID(),
+        expr: typeof x.expr === 'string' ? x.expr : '',
+        result: typeof x.result === 'string' ? x.result : '',
+      }))
+      .filter((x) => x.expr && x.result)
+      .slice(0, HISTORY_MAX);
+  }
+
+  function saveHistory() {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
+  }
+
+  function setHistoryEmptyState() {
+    if (!historyEmptyEl || !historyListEl) return;
+    const isEmpty = history.length === 0;
+    historyEmptyEl.style.display = isEmpty ? 'block' : 'none';
+    historyListEl.style.display = isEmpty ? 'none' : 'grid';
+  }
+
+  function renderHistory() {
+    if (!historyListEl) return;
+    historyListEl.innerHTML = '';
+
+    for (const item of history) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'history-item';
+      btn.setAttribute('data-id', item.id);
+      btn.setAttribute('aria-label', `Restore ${item.result}`);
+
+      const exprSpan = document.createElement('span');
+      exprSpan.className = 'history-expr';
+      exprSpan.textContent = item.expr;
+
+      const resultSpan = document.createElement('span');
+      resultSpan.className = 'history-result';
+      resultSpan.textContent = item.result;
+
+      btn.append(exprSpan, resultSpan);
+      li.appendChild(btn);
+      historyListEl.appendChild(li);
+    }
+
+    setHistoryEmptyState();
+  }
+
+  function prettyOp(op) {
+    if (op === '*') return '×';
+    if (op === '/') return '÷';
+    if (op === '-') return '−';
+    return op;
+  }
+
+  function formatExprFromTokens(list) {
+    return list
+      .map((t) => (typeof t === 'string' ? prettyOp(t) : String(t)))
+      .filter((t) => t !== '')
+      .join(' ');
+  }
+
+  function addToHistory(expr, result) {
+    if (!historyListEl) return;
+    const trimmedExpr = String(expr || '').trim();
+    const trimmedResult = String(result || '').trim();
+    if (!trimmedExpr || !trimmedResult || trimmedResult === '錯誤') return;
+
+    const id = (crypto && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const next = [{ id, expr: trimmedExpr, result: trimmedResult }, ...history];
+
+    // de-dupe consecutive identical entries
+    history = next.filter((x, i, arr) => i === 0 || !(x.expr === arr[i - 1].expr && x.result === arr[i - 1].result)).slice(0, HISTORY_MAX);
+    saveHistory();
+    renderHistory();
+  }
+
+  async function copyHistoryToClipboard() {
+    const lines = history.map((h) => `${h.expr} = ${h.result}`);
+    const text = lines.join('\n');
+    if (!text) return;
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  function restoreFromHistoryItem(item) {
+    const n = Number(item.result);
+    if (!Number.isFinite(n)) return;
+    tokens = [n];
+    current = '';
+    lastWasEquals = true;
+    error = false;
+    render();
   }
 
   function render() {
@@ -193,6 +331,11 @@
       if (!commitCurrentNumber()) return;
     }
 
+    const exprTokens = tokens.slice();
+    if (exprTokens.length && typeof exprTokens[exprTokens.length - 1] === 'string') {
+      exprTokens.pop();
+    }
+
     // remove trailing operator
     if (tokens.length && typeof tokens[tokens.length - 1] === 'string') {
       tokens.pop();
@@ -205,10 +348,14 @@
 
     try {
       const result = evaluateTokens(tokens);
-      tokens = [Number(formatNumber(result))];
+      const resultText = formatNumber(result);
+      const exprText = formatExprFromTokens(exprTokens);
+
+      tokens = [Number(resultText)];
       current = '';
       lastWasEquals = true;
       error = false;
+      addToHistory(exprText, resultText);
     } catch {
       error = true;
     }
@@ -232,6 +379,37 @@
     if (action === 'dot') return appendDot();
     if (action === 'toggleSign') return toggleSign();
     if (action === 'percent') return percent();
+  });
+
+  historyListEl?.addEventListener('click', (e) => {
+    const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('button.history-item') : null);
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    if (!id) return;
+    const item = history.find((h) => h.id === id);
+    if (!item) return;
+    restoreFromHistoryItem(item);
+  });
+
+  historyClearBtn?.addEventListener('click', () => {
+    history = [];
+    saveHistory();
+    renderHistory();
+  });
+
+  historyCopyBtn?.addEventListener('click', async () => {
+    try {
+      await copyHistoryToClipboard();
+      if (historyCopyBtn) {
+        const original = historyCopyBtn.textContent;
+        historyCopyBtn.textContent = '已複製';
+        setTimeout(() => {
+          historyCopyBtn.textContent = original || '複製';
+        }, 900);
+      }
+    } catch {
+      // ignore
+    }
   });
 
   window.addEventListener('keydown', (e) => {
@@ -262,5 +440,7 @@
     }
   });
 
+  loadHistory();
+  renderHistory();
   render();
 })();
