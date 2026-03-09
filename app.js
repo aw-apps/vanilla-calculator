@@ -1,6 +1,9 @@
 (() => {
   const exprEl = document.getElementById('expr');
   const valueEl = document.getElementById('value');
+  const memEl = document.getElementById('mem');
+
+  const MEMORY_KEY = 'calcMemory:v1';
 
   const historyListEl = document.getElementById('historyList');
   const historyEmptyEl = document.getElementById('historyEmpty');
@@ -51,6 +54,8 @@
   let lastWasEquals = false;
   let error = false;
 
+  let memory = 0;
+
   function formatNumber(n) {
     if (!Number.isFinite(n)) return '錯誤';
     const s = String(n);
@@ -63,6 +68,78 @@
     } catch {
       return null;
     }
+  }
+
+  function loadMemory() {
+    try {
+      const raw = localStorage.getItem(MEMORY_KEY);
+      const n = raw === null ? 0 : Number(raw);
+      memory = Number.isFinite(n) ? n : 0;
+    } catch {
+      memory = 0;
+    }
+  }
+
+  function saveMemory() {
+    try {
+      if (memory === 0) localStorage.removeItem(MEMORY_KEY);
+      else localStorage.setItem(MEMORY_KEY, String(memory));
+    } catch {
+      // ignore
+    }
+  }
+
+  function renderMemory() {
+    if (!memEl) return;
+    const active = memory !== 0;
+    memEl.classList.toggle('active', active);
+    memEl.textContent = active ? `M ${formatNumber(memory)}` : 'M';
+  }
+
+  function getCurrentOrLastNumber() {
+    if (current !== '' && current !== '-') {
+      const n = Number(current);
+      return Number.isFinite(n) ? n : null;
+    }
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      const t = tokens[i];
+      if (typeof t === 'number') return t;
+    }
+    return 0;
+  }
+
+  function memClear() {
+    memory = 0;
+    saveMemory();
+    renderMemory();
+  }
+
+  function memRecall() {
+    if (!ensureNotError()) return;
+    if (lastWasEquals) {
+      tokens = [];
+      lastWasEquals = false;
+    }
+    current = formatNumber(memory);
+    render();
+  }
+
+  function memAdd() {
+    if (!ensureNotError()) return;
+    const n = getCurrentOrLastNumber();
+    if (n === null) return;
+    memory += n;
+    saveMemory();
+    renderMemory();
+  }
+
+  function memSub() {
+    if (!ensureNotError()) return;
+    const n = getCurrentOrLastNumber();
+    if (n === null) return;
+    memory -= n;
+    saveMemory();
+    renderMemory();
   }
 
   function loadHistory() {
@@ -187,6 +264,7 @@
     const exprText = [...tokens, current].filter((t) => t !== '' && t !== null && t !== undefined).join(' ');
     exprEl.textContent = exprText;
     valueEl.textContent = error ? '錯誤' : (current !== '' ? current : (tokens.length ? String(tokens[tokens.length - 1]) : '0'));
+    renderMemory();
   }
 
   function resetAll() {
@@ -445,6 +523,10 @@
     if (op) return setOperator(op);
 
     const action = btn.getAttribute('data-action');
+    if (action === 'memClear') return memClear();
+    if (action === 'memRecall') return memRecall();
+    if (action === 'memAdd') return memAdd();
+    if (action === 'memSub') return memSub();
     if (action === 'clear') return resetAll();
     if (action === 'backspace') return backspace();
     if (action === 'equals') return equals();
@@ -533,6 +615,7 @@
     }
   });
 
+  loadMemory();
   loadHistory();
   loadMemory();
   renderHistory();
